@@ -37,15 +37,16 @@ if 'fv_real' not in st.session_state:
     genera_meteo_v5_8()
 
 # --- HEADER CON LOGO DELLA SCUOLA ---
-col_logo, col_titolo = st.columns([1, 8]) # Rapporto tra larghezza logo e titolo
+col_logo, col_titolo = st.columns([1, 8]) 
 
 with col_logo:
-    st.image("logo-fp-piccolo.png", width=80) # Regola width se il logo appare troppo grande/piccolo
+    st.image("logo-fp-piccolo.png", width=80) 
 
 with col_titolo:
-    st.title("Grid Master")
-st.caption(f"Mantieni sicura la rete minimizzando i costi e le emissioni di CO2. | Meteo: {st.session_state.sky_desc}")
+    # Usiamo markdown con HTML per avere il nome grande e la versione piccola
+    st.markdown('<h1 style="margin-bottom: 0;">Grid Master <span style="font-size: 16px; color: gray; font-weight: normal;">v5.10.0</span></h1>', unsafe_allow_html=True)
 
+st.caption(f"Mantieni sicura la rete minimizzando i costi e le emissioni di CO2. | Meteo: {st.session_state.sky_desc}")
 # --- SIDEBAR ---
 with st.sidebar:
     st.header("🕹️ Pannello di Controllo")
