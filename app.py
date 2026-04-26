@@ -54,8 +54,17 @@ with st.sidebar:
     p_import_target = st.slider("Import Programmato (MW)", 0, 800, 400)
     p_hydro_max = st.slider("Potenza Dispacciabile Idro (MW)", 0, 500, 250)
     p_gas_max = st.slider("Potenza Dispacciabile Gas (MW)", 0, 1000, 500)
-    # BUG FIX 1: corretto st.info (era diventato un link Markdown)
+    
+    # Riquadro Costi Stand-by
     st.info(f"💡 Costo Stand-by: Idro €{COSTI['STANDBY_HYDRO']}/MW | Gas €{COSTI['STANDBY_GAS']}/MW")
+    
+    # --- NUOVO BOX CONTRATTO IMPORT (SPOSTATO QUI) ---
+    costo_giornaliero_import = p_import_target * 24 * 60
+    st.info(f"""
+    **Contratto import: {p_import_target} MW vincolati.** Costo: 60 €/MWh (sia che prelevi, sia che non prelevi)  
+    **Impegno totale: {costo_giornaliero_import:,.0f} €**
+    """)
+    
     st.divider()
     st.subheader("⚖️ Pesi Etici (distacco carichi)")
     w_osp = st.slider("Ospedali", 0, 100, 100)
@@ -76,15 +85,9 @@ c_t, c_g = st.columns([1, 2.5])
 with c_t:
     st.write("**Parametri Economici:**")
     st.table(pd.DataFrame({
-        "Voce": ["Rinnovabili (RES)", "Dispacciamento Idro", "Import", "Dispacciamento Gas", "Penale Take-or-Pay", "Distacco Carichi"],
-        "Costo (€/MWh)": [COSTI["RES"], COSTI["HYDRO"], COSTI["IMPORT"], COSTI["GAS"], COSTI["PENALE_TOP"], COSTI["PENALE_TAGLIO"]]
+        "Voce": ["RES", "Idro", "Import", "Gas", "Penale ToP", "Distacco"],
+        "€/MWh": [COSTI["RES"], COSTI["HYDRO"], COSTI["IMPORT"], COSTI["GAS"], COSTI["PENALE_TOP"], COSTI["PENALE_TAGLIO"]]
     }))
-
-    # BUG FIX 1: corretto st.info (era diventato un link Markdown)
-    st.info(f"""🔒 **Contratto Import: {p_import_target} MW vincolati**
-* **Se prelevi:** Paghi {COSTI['IMPORT']} € per ogni MWh utilizzato.
-* **Se NON prelevi:** Se sei costretto a ridurre l'import sotto i {p_import_target} MW per non sbilanciare la rete, paghi una penale *Take-or-Pay* di {COSTI['PENALE_TOP']} € per ogni MWh "rifiutato" in frontiera.
-""")
 
     if st.button("🔄 Rigenera Meteo"):
         genera_meteo_v5_8()
