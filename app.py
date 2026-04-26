@@ -46,53 +46,65 @@ with col_titolo:
     st.title("Grid Master")
 st.caption(f"Mantieni sicura la rete minimizzando i costi e le emissioni di CO2. | Meteo: {st.session_state.sky_desc}")
 
-# --- SIDEBAR ---
-with st.sidebar:
-    st.header("🕹️ Pannello di Controllo")
+# --- NUOVO LAYOUT A DUE COLONNE ---
+col_sinistra, col_destra = st.columns([1, 2.2])
+
+# --- COLONNA SINISTRA: IL TUO "VOLANTE" (Console di Comando) ---
+with col_sinistra:
+    st.header("🕹️ Console di Comando")
+    
+    # Spostati dalla Sidebar al corpo principale (colonna sinistra)
     scenario = st.selectbox("Seleziona Scenario", ["Standard", "Crollo Improvviso FV", "Blackout Eolico", "Picco di Domanda"])
+    
     st.divider()
+    
+    st.subheader("Pianificazione Potenza")
     p_import_target = st.slider("Import Programmato (MW)", 0, 800, 400)
     p_hydro_max = st.slider("Potenza Dispacciabile Idro (MW)", 0, 500, 250)
     p_gas_max = st.slider("Potenza Dispacciabile Gas (MW)", 0, 1000, 500)
-    # BUG FIX 1: corretto st.info (era diventato un link Markdown)
-    st.info(f"💡 Costo Stand-by: Idro €{COSTI['STANDBY_HYDRO']}/MW | Gas €{COSTI['STANDBY_GAS']}/MW")
+    
+    st.caption(f"💡 Costo Stand-by: Idro €{COSTI['STANDBY_HYDRO']}/MW | Gas €{COSTI['STANDBY_GAS']}/MW")
+    
     st.divider()
-    st.subheader("⚖️ Pesi Etici (distacco carichi)")
+    
+    st.subheader("Parametri Economici")
+    # Calcolo dinamico dell'impegno economico per il box azzurro
+    costo_giornaliero_import = p_import_target * 24 * COSTI["IMPORT"]
+    
+    st.info(f"""
+    **Contratto Import: {p_import_target} MW vincolati** Costo: {COSTI['IMPORT']} €/MWh (sia che prelevi, sia che non prelevi)  
+    **Impegno economico giornaliero: {costo_giornaliero_import:,.0f} €**
+    """)
+
+    st.subheader("⚖️ Pesi Etici")
     w_osp = st.slider("Ospedali", 0, 100, 100)
     w_res = st.slider("Residenziale", 0, 100, 60)
     w_ind = st.slider("Industrie", 0, 100, 20)
+    
+    if st.button("🔄 Rigenera Meteo"):
+        genera_meteo_v5_8()
+        st.rerun()
 
-# --- LOGICA SCENARI ---
+# --- LOGICA SCENARI (Mantenuta e calcolata qui per essere usata a destra) ---
 t = np.linspace(0, 24, 144)
 dt = 10/60
 carico = (750 + 200 * np.exp(-((t - 11)**2) / 10) + 400 * np.exp(-((t - 20)**2) / 6))
 if scenario == "Picco di Domanda":
     carico *= 1.2
 
-# --- UI PREVISIONALE ---
-st.subheader("📋 Analisi Previsionale (Day-Ahead)")
-c_t, c_g = st.columns([1, 2.5])
+# --- COLONNA DESTRA: ANALISI E VISUALIZZAZIONE ---
+with col_destra:
+    # 1. Tabella dei Costi (Versione compatta orizzontale)
+    st.subheader("💰 Costi di Generazione")
+    df_costi = pd.DataFrame({
+        "Voce": ["RES", "Idro", "Import", "Gas", "Penale ToP", "Distacco"],
+        "€/MWh": [COSTI["RES"], COSTI["HYDRO"], COSTI["IMPORT"], COSTI["GAS"], COSTI["PENALE_TOP"], COSTI["PENALE_TAGLIO"]]
+    })
+    st.dataframe(df_costi.set_index("Voce").T, use_container_width=True)
 
-with c_t:
-    st.write("**Parametri Economici:**")
-    st.table(pd.DataFrame({
-        "Voce": ["Rinnovabili (RES)", "Dispacciamento Idro", "Import", "Dispacciamento Gas", "Penale Take-or-Pay", "Distacco Carichi"],
-        "Costo (€/MWh)": [COSTI["RES"], COSTI["HYDRO"], COSTI["IMPORT"], COSTI["GAS"], COSTI["PENALE_TOP"], COSTI["PENALE_TAGLIO"]]
-    }))
-
-    # BUG FIX 1: corretto st.info (era diventato un link Markdown)
-    st.info(f"""🔒 **Contratto Import: {p_import_target} MW vincolati**
-* **Se prelevi:** Paghi {COSTI['IMPORT']} € per ogni MWh utilizzato.
-* **Se NON prelevi:** Se sei costretto a ridurre l'import sotto i {p_import_target} MW per non sbilanciare la rete, paghi una penale *Take-or-Pay* di {COSTI['PENALE_TOP']} € per ogni MWh "rifiutato" in frontiera.
-""")
-
-    if st.button("🔄 Rigenera Meteo"):
-        genera_meteo_v5_8()
-        st.rerun()
-
-with c_g:
+    # 2. Grafico Previsionale
+    st.subheader("📋 1. Analisi Previsionale (Day-Ahead)")
     fig_pre = go.Figure()
-    # Grafico previsionale NON impilato (intenzionale): fill='tozeroy' per tutte le tracce
     fig_pre.add_trace(go.Scatter(x=t, y=np.full(144, p_import_target), name="Import Programmato",
         fill='tozeroy', fillcolor='rgba(128, 128, 128, 0.4)', line=dict(color='gray', width=2)))
     fig_pre.add_trace(go.Scatter(x=t, y=st.session_state.wind_pre, name="Eolico (Previsto)",
@@ -101,8 +113,11 @@ with c_g:
         fill='tozeroy', fillcolor='rgba(255, 215, 0, 0.4)', line=dict(color='#FFD700', width=2)))
     fig_pre.add_trace(go.Scatter(x=t, y=carico, name="Domanda",
         line=dict(color='black', dash='dash', width=2)))
-    fig_pre.update_layout(height=320, margin=dict(l=0, r=0, t=0, b=0))
+    fig_pre.update_layout(height=350, margin=dict(l=0, r=0, t=20, b=0))
     st.plotly_chart(fig_pre, use_container_width=True)
+
+    # 3. Il tasto per lanciare la simulazione
+    avvia_sim = st.button("▶️ AVVIA SIMULAZIONE", type="primary", use_container_width=True)
 
 # --- SIMULAZIONE ---
 if st.button("▶️ AVVIA SIMULAZIONE", type="primary"):
