@@ -213,16 +213,63 @@ if st.button("▶️ AVVIA SIMULAZIONE", type="primary"):
         gestione_perfetta = False
         st.warning("💸 **Sovrastima Import:** Le rinnovabili hanno coperto la domanda e hai dovuto tagliare le importazioni, pagando le penali Take-or-Pay.")
 
-    if sum(p_gas) > sum(p_hyd) * 2:
-        gestione_perfetta = False
-        st.warning("🏭 **Inquinamento e Costi:** Uso eccessivo del Gas. Potevi ottimizzare le riserve o l'import per abbattere emissioni e costi.")
+    # --- ANALISI UTILIZZO RISERVE ---
+    # Utilizzo medio effettivo durante la giornata
+    utilizzo_medio_idro = sum(p_hyd) / len(p_hyd)
+    utilizzo_medio_gas  = sum(p_gas) / len(p_gas)
 
+    # Rapporto utilizzo/dichiarato (evita divisione per zero)
+    ratio_idro = utilizzo_medio_idro / p_hydro_max if p_hydro_max > 0 else 1.0
+    ratio_gas  = utilizzo_medio_gas  / p_gas_max   if p_gas_max  > 0 else 1.0
+
+    # Mix gas/idro: il gas viene usato più dell'idro disponibile?
+    if sum(p_gas) > sum(p_hyd) * 2 and p_hydro_max > 50:
+        gestione_perfetta = False
+        st.warning(
+            f"🏭 **Mix di dispacciamento inefficiente:** Hai usato in media {utilizzo_medio_gas:.0f} MW di gas "
+            f"contro {utilizzo_medio_idro:.0f} MW di idro, pur avendo {p_hydro_max} MW idro dichiarati. "
+            f"L'idroelettrico ha costo marginale di 40 €/MWh contro i 95 €/MWh del gas: "
+            f"andrebbe sempre dispacciato per primo, riservando il gas ai picchi residui."
+        )
+
+    # Idro sovradimensionato: i gestori reali tengono ~15-20% di margine di riserva
+    # Sotto il 20% di utilizzo medio la capacità dichiarata è chiaramente eccessiva
+    if p_hydro_max > 50 and ratio_idro < 0.20:
+        gestione_perfetta = False
+        st.warning(
+            f"💧 **Riserva idrica sovradimensionata:** Hai dichiarato {p_hydro_max} MW ma ne hai utilizzati "
+            f"in media solo {utilizzo_medio_idro:.0f} MW ({ratio_idro*100:.0f}% della capacità). "
+            f"I gestori reali mantengono un margine di riserva del 15-20% — oltre quella soglia "
+            f"si paga stand-by inutile. Riduci la capacità dichiarata e ottimizza con più import o meno gas."
+        )
+
+    # Gas sovradimensionato: il gas è la riserva di emergenza per eccellenza,
+    # è accettabile tenerlo quasi fermo — ma sotto il 5% è chiaramente eccessivo
+    if p_gas_max > 100 and ratio_gas < 0.05:
+        gestione_perfetta = False
+        st.warning(
+            f"🏭 **Riserva gas sovradimensionata:** Hai dichiarato {p_gas_max} MW di gas ma ne hai usati "
+            f"in media solo {utilizzo_medio_gas:.0f} MW ({ratio_gas*100:.1f}% della capacità). "
+            f"Il gas è la riserva più costosa in stand-by (€{COSTI['STANDBY_GAS']}/MW/giorno): "
+            f"tenerlo quasi fermo per l'intera giornata gonfia i costi fissi senza aumentare la sicurezza reale."
+        )
+
+    # Stand-by complessivo eccessivo (check combinato idro+gas)
     if costo_standby > 1500:
         gestione_perfetta = False
-        st.warning("🪫 **Eccesso di Sicurezza:** Troppe centrali in stand-by inutilmente. I costi di disponibilità hanno alzato la bolletta.")
+        st.warning(
+            f"🪫 **Costo di disponibilità elevato (€{int(costo_standby)}):** "
+            f"La somma dei costi di stand-by supera €1.500 — soglia oltre la quale "
+            f"l'eccesso di riserva dichiarata non è giustificato dall'effettivo fabbisogno di sicurezza. "
+            f"Idro usato al {ratio_idro*100:.0f}%, gas usato al {ratio_gas*100:.1f}%."
+        )
 
     if gestione_perfetta and costo_medio < 50:
-        st.success("🌟 **Ottimo:** Rete stabile, riserve dimensionate al millimetro e costo medio ottimizzato. Gestione impeccabile.")
+        st.success(
+            f"🌟 **Gestione ottimale:** Rete stabile, mix di dispacciamento corretto "
+            f"(idro al {ratio_idro*100:.0f}%, gas al {ratio_gas*100:.1f}%), "
+            f"costo medio contenuto e riserve dimensionate con il giusto margine di sicurezza."
+        )
 
     st.write("")
 
