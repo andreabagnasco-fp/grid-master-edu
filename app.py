@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 # --- CONFIGURAZIONE ---
-st.set_page_config(page_title="Grid Master Console v5.10.0", layout="wide")
+st.set_page_config(page_title="Grid Master Console v5.10.1", layout="wide")
 
 COSTI = {
     "RES": 0, "HYDRO": 40, "IMPORT": 60, "GAS": 95,
@@ -44,7 +44,7 @@ with col_logo:
 
 with col_titolo:
     # Usiamo markdown con HTML per avere il nome grande e la versione piccola
-    st.markdown('<h1 style="margin-bottom: 0;">Grid Master <span style="font-size: 16px; color: gray; font-weight: normal;">v5.10.0</span></h1>', unsafe_allow_html=True)
+    st.markdown('<h1 style="margin-bottom: 0;">Grid Master <span style="font-size: 16px; color: gray; font-weight: normal;">v5.10.1</span></h1>', unsafe_allow_html=True)
 
 st.caption(f"Mantieni sicura la rete minimizzando i costi e le emissioni di CO2. | Meteo: {st.session_state.sky_desc}")
 # --- SIDEBAR ---
