@@ -147,10 +147,21 @@ if st.button("▶️ AVVIA SIMULAZIONE", type="primary"):
                 )
                 tagli[prio[0][0]] += (tag * dt)
 
-        # AGC — FIX 4: rimosso stress_inerziale artificiale (era fisicamente scorretto)
-        # Il load shedding riduce già il carico netto, migliorando correttamente il bilancio
-        bilancio = (gen_res + imp_act + hyd + gas) - (carico[i] - tag)
-        fn = f[-1] * 0.995 + 50.0 * 0.005 + (bilancio * 0.00008)
+        # AGC — la frequenza risponde al bilancio FISICO reale, prima di qualsiasi taglio
+        # Questo è il cuore del modello: la f scende quando manca potenza, sale quando avanza
+        bilancio_fisico = (gen_res + imp_act + hyd + gas) - carico[i]
+        fn = f[-1] * 0.995 + 50.0 * 0.005 + (bilancio_fisico * 0.00008)
+
+        # Load shedding: scatta DOPO che la frequenza è già scesa, come nella realtà
+        if fn < 49.7:
+            deficit_hz = 49.7 - fn
+            tag = np.clip(deficit_hz / 0.00008 * 1.2, 0, 400)
+            prio = sorted(
+                [("Ospedali", w_osp), ("Residenziale", w_res), ("Industrie", w_ind)],
+                key=lambda x: (x[1], ["Industrie", "Residenziale", "Ospedali"].index(x[0]))
+            )
+            tagli[prio[0][0]] += tag * dt
+            fn += tag * 0.00008  # la frequenza risale parzialmente dopo il taglio
 
         # Integrazione energetica & CO2
         costo_op += (imp_act*COSTI["IMPORT"] + hyd*COSTI["HYDRO"] + gas*COSTI["GAS"] + tag*COSTI["PENALE_TAGLIO"]) * dt
