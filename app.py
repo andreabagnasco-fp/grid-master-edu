@@ -61,7 +61,7 @@ with st.sidebar:
     # --- NUOVO BOX CONTRATTO IMPORT (SPOSTATO QUI) ---
     costo_giornaliero_import = p_import_target * 24 * 60
     st.info(f"""
-    **Contratto import: {p_import_target} MW vincolati.** Costo: 60 €/MWh (sia che prelevi, sia che non prelevi)  
+    💡**Contratto import: {p_import_target} MW vincolati.** Costo: 60 €/MWh (sia che prelevi, sia che non prelevi)  
     **Impegno totale: {costo_giornaliero_import:,.0f} €**
     """)
     
