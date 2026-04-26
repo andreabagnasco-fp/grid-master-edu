@@ -138,15 +138,7 @@ if st.button("▶️ AVVIA SIMULAZIONE", type="primary"):
         else:  # Deficit
             hyd = np.clip(net, 0, p_hydro_max)
             gas = np.clip(net - hyd, 0, p_gas_max)
-            deficit = net - hyd - gas
-            if deficit > 0:
-                tag = deficit
-                prio = sorted(
-                    [("Ospedali", w_osp), ("Residenziale", w_res), ("Industrie", w_ind)],
-                    key=lambda x: x[1]
-                )
-                tagli[prio[0][0]] += (tag * dt)
-
+            
         # AGC — la frequenza risponde al bilancio FISICO reale, prima di qualsiasi taglio
         # Questo è il cuore del modello: la f scende quando manca potenza, sale quando avanza
         bilancio_fisico = (gen_res + imp_act + hyd + gas) - carico[i]
