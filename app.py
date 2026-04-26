@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 # --- CONFIGURAZIONE ---
-st.set_page_config(page_title="Grid Master Console v5.9.2", layout="wide")
+st.set_page_config(page_title="Grid Master Console v5.10.0", layout="wide")
 
 COSTI = {
     "RES": 0, "HYDRO": 40, "IMPORT": 60, "GAS": 95,
