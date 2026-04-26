@@ -103,8 +103,9 @@ with c_g:
         fill='tozeroy', fillcolor='rgba(0, 191, 255, 0.4)', line=dict(color='#00BFFF', width=2)))
     fig_pre.add_trace(go.Scatter(x=t, y=st.session_state.fv_pre, name="FV (Previsto)",
         fill='tozeroy', fillcolor='rgba(255, 215, 0, 0.4)', line=dict(color='#FFD700', width=2)))
-    fig_pre.add_trace(go.Scatter(x=t, y=carico, name="Domanda",
-        line=dict(color='black', dash='dash', width=2)))
+    carico_previsto = 750 + 200 * np.exp(-((t - 11)**2) / 10) + 400 * np.exp(-((t - 20)**2) / 6)
+fig_pre.add_trace(go.Scatter(x=t, y=carico_previsto, name="Domanda (Previsione)",
+    line=dict(color='black', dash='dash', width=2)))
     fig_pre.update_layout(height=320, margin=dict(l=0, r=0, t=0, b=0))
     st.plotly_chart(fig_pre, use_container_width=True)
 
